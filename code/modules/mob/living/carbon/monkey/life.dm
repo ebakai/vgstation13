@@ -79,16 +79,39 @@
 		G.process()
 
 	if(!client && stat == CONSCIOUS)
+		if(istype(uniform, /obj/item/clothing/monkeyclothes/doctor))
+			doctor_tick()
+		else
+			if(prob(33) && canmove && isturf(loc) && !pulledby && !(grabbed_by?.len)) //won't move if being pulled
+				INVOKE_EVENT(src, /event/before_move)
+				step(src, pick(cardinal))
+				INVOKE_EVENT(src, /event/after_move)
+			if(prob(1))
+				passive_emote()
 
-		if(prob(33) && canmove && isturf(loc) && !pulledby && !(grabbed_by?.len)) //won't move if being pulled
+/mob/living/carbon/monkey/proc/doctor_tick()
+	var/obj/machinery/optable/table = null
+	for(var/obj/machinery/optable/T in view(1, src))
+		if (T.victim)
+			table = T
+			break
+	if(!table)
+		return
 
-			INVOKE_EVENT(src, /event/before_move)
-			step(src, pick(cardinal))
-			INVOKE_EVENT(src, /event/after_move)
+	var/list/tools = list()
+	for (var/obj/item/T in view(1, src))
+		if (can_operate(table.victim, src, T))
+			tools += T
+	if(!tools.len)
+		return
+	var/obj/item/tool = pick(tools)
 
-		if(prob(1))
-			passive_emote()
-
+	var/table_dir = get_dir(src, table)
+	change_dir(get_dir(src, tool))
+	spawn(5)
+		change_dir(table_dir)
+		return
+	do_surgery(table.victim, src, tool)
 
 /mob/living/carbon/monkey/proc/passive_emote()
 	emote(pick("scratch","jump","roll","tail"))
